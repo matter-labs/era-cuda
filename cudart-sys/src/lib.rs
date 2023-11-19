@@ -37,36 +37,6 @@ impl Display for CudaError {
 
 impl Error for CudaError {}
 
-impl From<u32> for dim3 {
-    fn from(value: u32) -> Self {
-        Self {
-            x: value,
-            y: 1,
-            z: 1,
-        }
-    }
-}
-
-impl From<(u32, u32)> for dim3 {
-    fn from(value: (u32, u32)) -> Self {
-        Self {
-            x: value.0,
-            y: value.1,
-            z: 1,
-        }
-    }
-}
-
-impl From<(u32, u32, u32)> for dim3 {
-    fn from(value: (u32, u32, u32)) -> Self {
-        Self {
-            x: value.0,
-            y: value.1,
-            z: value.2,
-        }
-    }
-}
-
 impl Default for CudaMemPoolProperties {
     fn default() -> Self {
         let mut s = MaybeUninit::<Self>::uninit();

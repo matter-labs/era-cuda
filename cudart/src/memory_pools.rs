@@ -1,11 +1,11 @@
 // Stream Ordered Memory Allocator
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__MEMORY__POOLS.html
 
-use core::ffi::c_void;
 use std::alloc::Layout;
 use std::mem;
 use std::mem::MaybeUninit;
 use std::ops::{Deref, DerefMut};
+use std::os::raw::c_void;
 
 use cudart_sys::*;
 

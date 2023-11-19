@@ -3,7 +3,7 @@
 #![feature(trusted_len)]
 #![feature(trusted_random_access)]
 
-extern crate core;
+pub extern crate paste;
 
 pub mod device;
 pub mod error;

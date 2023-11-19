@@ -1,9 +1,9 @@
 // execution control
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__EXECUTION.html
 
-use core::ffi::c_void;
 use std::marker::PhantomData;
-use std::os::raw::{c_char, c_int, c_uint};
+use std::os::raw::{c_char, c_int, c_uint, c_void};
+use std::ptr::null_mut;
 use std::sync::{Arc, Weak};
 
 use cudart_sys::*;
@@ -11,19 +11,139 @@ use cudart_sys::*;
 use crate::result::{CudaResult, CudaResultWrap};
 use crate::stream::CudaStream;
 
-pub struct KernelArguments<'a> {
+#[derive(Debug, Copy, Clone)]
+pub struct Dim3 {
+    pub x: u32,
+    pub y: u32,
+    pub z: u32,
+}
+
+impl Dim3 {
+    pub fn new(x: u32, y: u32, z: u32) -> Self {
+        Self { x, y, z }
+    }
+}
+
+impl From<u32> for Dim3 {
+    fn from(value: u32) -> Self {
+        Self::new(value, 1, 1)
+    }
+}
+
+impl From<(u32, u32)> for Dim3 {
+    fn from(value: (u32, u32)) -> Self {
+        Self::new(value.0, value.1, 1)
+    }
+}
+
+impl From<(u32, u32, u32)> for Dim3 {
+    fn from(value: (u32, u32, u32)) -> Self {
+        Self::new(value.0, value.1, value.2)
+    }
+}
+
+impl From<Dim3> for dim3 {
+    fn from(val: Dim3) -> Self {
+        Self {
+            x: val.x,
+            y: val.y,
+            z: val.z,
+        }
+    }
+}
+
+impl Default for Dim3 {
+    fn default() -> Self {
+        Self::new(1, 1, 1)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default)]
+pub struct CudaLaunchConfig<'a> {
+    pub grid_dim: Dim3,
+    pub block_dim: Dim3,
+    pub dynamic_smem_bytes: usize,
+    pub stream: Option<&'a CudaStream>,
+    pub attributes: &'a [CudaLaunchAttribute],
+}
+
+impl<'a> CudaLaunchConfig<'a> {
+    pub fn builder() -> CudaLaunchConfigBuilder<'a> {
+        CudaLaunchConfigBuilder::new()
+    }
+
+    pub fn basic(
+        grid_dim: impl Into<Dim3>,
+        block_dim: impl Into<Dim3>,
+        stream: &'a CudaStream,
+    ) -> Self {
+        CudaLaunchConfig {
+            grid_dim: grid_dim.into(),
+            block_dim: block_dim.into(),
+            dynamic_smem_bytes: 0,
+            stream: Some(stream),
+            attributes: &[],
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct CudaLaunchConfigBuilder<'a> {
+    grid_dim: Dim3,
+    block_dim: Dim3,
+    dynamic_smem_bytes: usize,
+    stream: Option<&'a CudaStream>,
+    attributes: &'a [CudaLaunchAttribute],
+}
+
+impl<'a> CudaLaunchConfigBuilder<'a> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn grid_dim(mut self, grid_dim: impl Into<Dim3>) -> Self {
+        self.grid_dim = grid_dim.into();
+        self
+    }
+
+    pub fn block_dim(mut self, block_dim: impl Into<Dim3>) -> Self {
+        self.block_dim = block_dim.into();
+        self
+    }
+
+    pub fn dynamic_smem_bytes(mut self, dynamic_smem_bytes: usize) -> Self {
+        self.dynamic_smem_bytes = dynamic_smem_bytes;
+        self
+    }
+
+    pub fn stream(mut self, stream: &'a CudaStream) -> Self {
+        self.stream = Some(stream);
+        self
+    }
+
+    pub fn attributes(mut self, attributes: &'a [CudaLaunchAttribute]) -> Self {
+        self.attributes = attributes;
+        self
+    }
+
+    pub fn build(self) -> CudaLaunchConfig<'a> {
+        CudaLaunchConfig {
+            grid_dim: self.grid_dim,
+            block_dim: self.block_dim,
+            dynamic_smem_bytes: self.dynamic_smem_bytes,
+            stream: self.stream,
+            attributes: self.attributes,
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct RawKernelArguments<'a> {
     vec: Vec<*mut c_void>,
     phantom: PhantomData<&'a c_void>,
 }
 
-impl<'a> KernelArguments<'a> {
-    pub fn new() -> Self {
-        Self {
-            vec: vec![],
-            phantom: PhantomData,
-        }
-    }
-
+impl<'a> RawKernelArguments<'a> {
     pub fn push<T>(&mut self, value: &T) {
         self.vec.push(value as *const T as *mut c_void);
     }
@@ -33,17 +153,11 @@ impl<'a> KernelArguments<'a> {
     }
 }
 
-impl<'a> Default for KernelArguments<'a> {
-    fn default() -> Self {
-        KernelArguments::new()
-    }
-}
-
 #[macro_export]
-macro_rules! kernel_args {
+macro_rules! raw_kernel_arguments {
     ($($x:expr),* $(,)?) => {
         {
-            let mut args = $crate::execution::KernelArguments::new();
+            let mut args = $crate::execution::RawKernelArguments::default();
             $(
             args.push($x);
             )*
@@ -52,7 +166,10 @@ macro_rules! kernel_args {
     };
 }
 
-pub use kernel_args;
+pub trait KernelArguments {
+    type Signature;
+    fn as_raw(&self) -> RawKernelArguments;
+}
 
 #[derive(Debug, Copy, Clone)]
 pub enum CudaLaunchAttribute {
@@ -189,10 +306,12 @@ impl CudaLaunchAttribute {
             ),
         }
     }
+}
 
-    fn into_raw(self) -> cudaLaunchAttribute {
-        let (id, val) = self.into_id_and_value();
-        cudaLaunchAttribute {
+impl From<CudaLaunchAttribute> for cudaLaunchAttribute {
+    fn from(val: CudaLaunchAttribute) -> Self {
+        let (id, val) = val.into_id_and_value();
+        Self {
             id,
             pad: [c_char::default(); 4],
             val,
@@ -200,276 +319,146 @@ impl CudaLaunchAttribute {
     }
 }
 
-pub trait Kernel: Sized {
-    fn get_kernel_raw(self) -> *const c_void;
-}
+pub trait KernelFunction {
+    type Signature;
 
-pub trait KernelLaunch<'a>: Kernel {
-    type Args: Into<KernelArguments<'a>>;
+    fn as_ptr(&self) -> *const c_void;
 
-    #[allow(clippy::missing_safety_doc)]
-    unsafe fn launch(
-        self,
-        grid_dim: dim3,
-        block_dim: dim3,
-        args: Self::Args,
-        shared_mem: usize,
-        stream: &CudaStream,
+    fn launch(
+        &self,
+        config: &CudaLaunchConfig,
+        args: &impl KernelArguments<Signature = Self::Signature>,
     ) -> CudaResult<()> {
-        cudaLaunchKernel(
-            self.get_kernel_raw(),
-            grid_dim,
-            block_dim,
-            args.into().as_mut_ptr(),
-            shared_mem,
-            stream.into(),
-        )
-        .wrap()
-    }
-
-    #[allow(clippy::missing_safety_doc)]
-    unsafe fn launch_ex(
-        self,
-        grid_dim: dim3,
-        block_dim: dim3,
-        args: Self::Args,
-        shared_mem: usize,
-        stream: &CudaStream,
-        attributes: &[CudaLaunchAttribute],
-    ) -> CudaResult<()> {
-        let mut attributes = attributes
+        let mut attributes = config
+            .attributes
             .iter()
-            .map(|attribute| (*attribute).into_raw())
+            .map(|&attribute| attribute.into())
             .collect::<Vec<_>>();
         let config = cudaLaunchConfig_t {
-            gridDim: grid_dim,
-            blockDim: block_dim,
-            dynamicSmemBytes: shared_mem,
-            stream: stream.into(),
+            gridDim: config.grid_dim.into(),
+            blockDim: config.block_dim.into(),
+            dynamicSmemBytes: config.dynamic_smem_bytes,
+            stream: config.stream.map_or(null_mut(), |s| s.into()),
             attrs: attributes.as_mut_ptr(),
             numAttrs: attributes.len() as c_uint,
         };
-        cudaLaunchKernelExC(
-            &config as *const _,
-            self.get_kernel_raw(),
-            args.into().as_mut_ptr(),
-        )
-        .wrap()
+        unsafe {
+            cudaLaunchKernelExC(
+                &config as *const _,
+                self.as_ptr(),
+                args.as_raw().as_mut_ptr(),
+            )
+            .wrap()
+        }
     }
 }
 
-impl<'a> From<()> for KernelArguments<'a> {
-    fn from(_value: ()) -> Self {
-        KernelArguments::default()
-    }
+#[macro_export]
+macro_rules! cuda_kernel_signature {
+    ($vis:vis $name:ident$(<$($gen:tt),+>)?, $($arg_ident:ident:$arg_ty:ty),*$(,)?) => {
+        $vis type $name$(<$($gen),*>)? = unsafe extern "C" fn($($arg_ident:$arg_ty),*);
+    };
 }
 
-pub type KernelNoArgs = unsafe extern "C" fn();
-
-impl Kernel for KernelNoArgs {
-    fn get_kernel_raw(self) -> *const c_void {
-        self as *const c_void
-    }
+#[macro_export]
+macro_rules! cuda_kernel_arguments {
+    ($vis:vis $name:ident$(<$($gen:tt$(:$gen_tr:tt)?),+>)?, $signature_name:ident, $($arg_ident:ident:$arg_ty:ty),*$(,)?) => {
+        $vis struct $name$(<$($gen$(:$gen_tr)?),*>)? {$($arg_ident:$arg_ty,)*}
+        impl$(<$($gen$(:$gen_tr)?),*>)? $name$(<$($gen),*>)? {
+            #[allow(clippy::too_many_arguments)]
+            pub fn new($($arg_ident:$arg_ty,)*) -> Self { Self {$($arg_ident,)*} }
+        }
+        impl$(<$($gen$(:$gen_tr)?),*>)? $crate::execution::KernelArguments for $name$(<$($gen),*>)? {
+            type Signature = $signature_name$(<$($gen),*>)?;
+            fn as_raw(&self) -> $crate::execution::RawKernelArguments {
+                $crate::raw_kernel_arguments!($(&self.$arg_ident),*)
+            }
+        }
+    };
 }
 
-impl<'a> KernelLaunch<'a> for KernelNoArgs {
-    type Args = ();
+#[macro_export]
+macro_rules! cuda_kernel_signature_and_arguments {
+    ($vis:vis $name:ident$(<$($gen:tt$(:$gen_tr:tt)?),+>)?, $($arg_ident:ident:$arg_ty:ty),*$(,)?) => {
+        $crate::paste::paste! {
+            $crate::cuda_kernel_signature!($vis [<$name Signature>]$(<$($gen),*>)?, $($arg_ident:$arg_ty),*);
+            $crate::cuda_kernel_arguments!($vis [<$name Arguments>]$(<$($gen$(:$gen_tr)?),*>)?, [<$name Signature>], $($arg_ident:$arg_ty),*);
+        }
+    };
 }
 
-impl<'a, T> From<(&T,)> for KernelArguments<'a> {
-    fn from(value: (&T,)) -> Self {
-        kernel_args![value.0]
-    }
+#[macro_export]
+macro_rules! cuda_kernel_function {
+    ($vis:vis $name:ident$(<$($gen:tt$(:$gen_tr:tt)?),+>)?, $signature_name:ident) => {
+        $vis struct $name$(<$($gen$(:$gen_tr)?),*>)?($signature_name$(<$($gen),*>)?);
+        impl$(<$($gen$(:$gen_tr)?),*>)? $crate::execution::KernelFunction for $name$(<$($gen),*>)? {
+            type Signature = $signature_name$(<$($gen),*>)?;
+            fn as_ptr(&self) -> *const std::os::raw::c_void {
+                self.0 as *const std::os::raw::c_void
+            }
+        }
+    };
 }
 
-pub type KernelOneArg<T0> = unsafe extern "C" fn(T0);
-
-impl<T0> Kernel for KernelOneArg<T0> {
-    fn get_kernel_raw(self) -> *const c_void {
-        self as *const c_void
-    }
+#[macro_export]
+macro_rules! cuda_kernel_signature_arguments_and_function {
+    ($vis:vis $name:ident$(<$($gen:tt$(:$gen_tr:tt)?),+>)?, $($arg_ident:ident:$arg_ty:ty),*$(,)?) => {
+        $crate::paste::paste! {
+            $crate::cuda_kernel_signature_and_arguments!($vis $name$(<$($gen$(:$gen_tr)?),*>)?, $($arg_ident:$arg_ty),*);
+            $crate::cuda_kernel_function!($vis [<$name Function>]$(<$($gen$(:$gen_tr)?),*>)?, [<$name Signature>]);
+        }
+    };
 }
 
-impl<'a, T0: 'a> KernelLaunch<'a> for KernelOneArg<T0> {
-    type Args = (&'a T0,);
+#[macro_export]
+macro_rules! cuda_kernel_declaration {
+    ($vis:vis $kernel_name:ident($($arg_ident:ident:$arg_ty:ty),*$(,)?)) => {
+        extern "C" {$vis fn $kernel_name($($arg_ident:$arg_ty,)*); }
+    };
 }
 
-impl<'a, T0, T1> From<(&T0, &T1)> for KernelArguments<'a> {
-    fn from(value: (&T0, &T1)) -> Self {
-        kernel_args![value.0, value.1]
-    }
-}
-
-pub type KernelTwoArgs<T0, T1> = unsafe extern "C" fn(T0, T1);
-
-impl<'a, T0: 'a, T1: 'a> Kernel for KernelTwoArgs<T0, T1> {
-    fn get_kernel_raw(self) -> *const c_void {
-        self as *const c_void
-    }
-}
-
-impl<'a, T0: 'a, T1: 'a> KernelLaunch<'a> for KernelTwoArgs<T0, T1> {
-    type Args = (&'a T0, &'a T1);
-}
-
-impl<'a, T0, T1, T2> From<(&T0, &T1, &T2)> for KernelArguments<'a> {
-    fn from(value: (&T0, &T1, &T2)) -> Self {
-        kernel_args![value.0, value.1, value.2]
-    }
-}
-
-pub type KernelThreeArgs<T0, T1, T2> = unsafe extern "C" fn(T0, T1, T2);
-
-impl<'a, T0: 'a, T1: 'a, T2: 'a> Kernel for KernelThreeArgs<T0, T1, T2> {
-    fn get_kernel_raw(self) -> *const c_void {
-        self as *const c_void
-    }
-}
-
-impl<'a, T0: 'a, T1: 'a, T2: 'a> KernelLaunch<'a> for KernelThreeArgs<T0, T1, T2> {
-    type Args = (&'a T0, &'a T1, &'a T2);
-}
-
-impl<'a, T0, T1, T2, T3> From<(&T0, &T1, &T2, &T3)> for KernelArguments<'a> {
-    fn from(value: (&T0, &T1, &T2, &T3)) -> Self {
-        kernel_args![value.0, value.1, value.2, value.3]
-    }
-}
-
-pub type KernelFourArgs<T0, T1, T2, T3> = unsafe extern "C" fn(T0, T1, T2, T3);
-
-impl<'a, T0: 'a, T1: 'a, T2: 'a, T3: 'a> Kernel for KernelFourArgs<T0, T1, T2, T3> {
-    fn get_kernel_raw(self) -> *const c_void {
-        self as *const c_void
-    }
-}
-
-impl<'a, T0: 'a, T1: 'a, T2: 'a, T3: 'a> KernelLaunch<'a> for KernelFourArgs<T0, T1, T2, T3> {
-    type Args = (&'a T0, &'a T1, &'a T2, &'a T3);
-}
-
-impl<'a, T0, T1, T2, T3, T4> From<(&T0, &T1, &T2, &T3, &T4)> for KernelArguments<'a> {
-    fn from(value: (&T0, &T1, &T2, &T3, &T4)) -> Self {
-        kernel_args![value.0, value.1, value.2, value.3, value.4]
-    }
-}
-
-pub type KernelFiveArgs<T0, T1, T2, T3, T4> = unsafe extern "C" fn(T0, T1, T2, T3, T4);
-
-impl<'a, T0: 'a, T1: 'a, T2: 'a, T3: 'a, T4: 'a> Kernel for KernelFiveArgs<T0, T1, T2, T3, T4> {
-    fn get_kernel_raw(self) -> *const c_void {
-        self as *const c_void
-    }
-}
-
-impl<'a, T0: 'a, T1: 'a, T2: 'a, T3: 'a, T4: 'a> KernelLaunch<'a>
-    for KernelFiveArgs<T0, T1, T2, T3, T4>
-{
-    type Args = (&'a T0, &'a T1, &'a T2, &'a T3, &'a T4);
-}
-
-impl<'a, T0, T1, T2, T3, T4, T5> From<(&T0, &T1, &T2, &T3, &T4, &T5)> for KernelArguments<'a> {
-    fn from(value: (&T0, &T1, &T2, &T3, &T4, &T5)) -> Self {
-        kernel_args![value.0, value.1, value.2, value.3, value.4, value.5]
-    }
-}
-
-pub type KernelSixArgs<T0, T1, T2, T3, T4, T5> = unsafe extern "C" fn(T0, T1, T2, T3, T4, T5);
-
-impl<'a, T0: 'a, T1: 'a, T2: 'a, T3: 'a, T4: 'a, T5: 'a> Kernel
-    for KernelSixArgs<T0, T1, T2, T3, T4, T5>
-{
-    fn get_kernel_raw(self) -> *const c_void {
-        self as *const c_void
-    }
-}
-
-impl<'a, T0: 'a, T1: 'a, T2: 'a, T3: 'a, T4: 'a, T5: 'a> KernelLaunch<'a>
-    for KernelSixArgs<T0, T1, T2, T3, T4, T5>
-{
-    type Args = (&'a T0, &'a T1, &'a T2, &'a T3, &'a T4, &'a T5);
-}
-
-impl<'a, T0, T1, T2, T3, T4, T5, T6> From<(&T0, &T1, &T2, &T3, &T4, &T5, &T6)>
-    for KernelArguments<'a>
-{
-    fn from(value: (&T0, &T1, &T2, &T3, &T4, &T5, &T6)) -> Self {
-        kernel_args![value.0, value.1, value.2, value.3, value.4, value.5, value.6]
-    }
-}
-
-pub type KernelSevenArgs<T0, T1, T2, T3, T4, T5, T6> =
-    unsafe extern "C" fn(T0, T1, T2, T3, T4, T5, T6);
-
-impl<'a, T0: 'a, T1: 'a, T2: 'a, T3: 'a, T4: 'a, T5: 'a, T6: 'a> Kernel
-    for KernelSevenArgs<T0, T1, T2, T3, T4, T5, T6>
-{
-    fn get_kernel_raw(self) -> *const c_void {
-        self as *const c_void
-    }
-}
-
-impl<'a, T0: 'a, T1: 'a, T2: 'a, T3: 'a, T4: 'a, T5: 'a, T6: 'a> KernelLaunch<'a>
-    for KernelSevenArgs<T0, T1, T2, T3, T4, T5, T6>
-{
-    type Args = (&'a T0, &'a T1, &'a T2, &'a T3, &'a T4, &'a T5, &'a T6);
-}
-
-impl<'a, T0, T1, T2, T3, T4, T5, T6, T7> From<(&T0, &T1, &T2, &T3, &T4, &T5, &T6, &T7)>
-    for KernelArguments<'a>
-{
-    fn from(value: (&T0, &T1, &T2, &T3, &T4, &T5, &T6, &T7)) -> Self {
-        kernel_args![value.0, value.1, value.2, value.3, value.4, value.5, value.6, value.7]
-    }
-}
-
-pub type KernelEightArgs<T0, T1, T2, T3, T4, T5, T6, T7> =
-    unsafe extern "C" fn(T0, T1, T2, T3, T4, T5, T6, T7);
-
-impl<'a, T0: 'a, T1: 'a, T2: 'a, T3: 'a, T4: 'a, T5: 'a, T6: 'a, T7: 'a> Kernel
-    for KernelEightArgs<T0, T1, T2, T3, T4, T5, T6, T7>
-{
-    fn get_kernel_raw(self) -> *const c_void {
-        self as *const c_void
-    }
-}
-
-impl<'a, T0: 'a, T1: 'a, T2: 'a, T3: 'a, T4: 'a, T5: 'a, T6: 'a, T7: 'a> KernelLaunch<'a>
-    for KernelEightArgs<T0, T1, T2, T3, T4, T5, T6, T7>
-{
-    type Args = (
-        &'a T0,
-        &'a T1,
-        &'a T2,
-        &'a T3,
-        &'a T4,
-        &'a T5,
-        &'a T6,
-        &'a T7,
-    );
+#[macro_export]
+macro_rules! cuda_kernel {
+    ($vis:vis $name:ident, $kernel_name:ident($($arg_ident:ident:$arg_ty:ty),*$(,)?)) => {
+        $crate::paste::paste! {
+            $crate::cuda_kernel_signature_arguments_and_function!($vis $name, $($arg_ident:$arg_ty),*);
+            $crate::cuda_kernel_declaration!($vis $kernel_name($($arg_ident:$arg_ty),*));
+            impl core::default::Default for [<$name Function>] {
+                fn default() -> Self { Self($kernel_name) }
+            }
+        }
+    };
+    ($vis:vis $name:ident, $macro_name:ident, $($arg_ident:ident:$arg_ty:ty),*$(,)?) => {
+        $crate::cuda_kernel_signature_arguments_and_function!($name,$($arg_ident:$arg_ty),*);
+        macro_rules! $macro_name {
+            ($kernel_name:ident) => {
+                ::cudart::cuda_kernel_declaration!($kernel_name($($arg_ident:$arg_ty),*));
+            };
+        }
+    };
 }
 
 pub struct HostFn<'a> {
-    arc: Arc<Box<dyn Fn() + Send + 'a>>,
+    arc: Arc<Box<dyn Fn() + Send + Sync + 'a>>,
 }
 
 impl<'a> HostFn<'a> {
-    pub fn new(func: impl Fn() + Send + 'a) -> Self {
+    pub fn new(func: impl Fn() + Send + Sync + 'a) -> Self {
         Self {
-            arc: Arc::new(Box::new(func) as Box<dyn Fn() + Send>),
+            arc: Arc::new(Box::new(func) as Box<dyn Fn() + Send + Sync>),
         }
     }
 }
 
 unsafe extern "C" fn launch_host_fn_callback(data: *mut c_void) {
-    let raw = data as *const Box<dyn Fn() + Send>;
+    let raw = data as *const Box<dyn Fn() + Send + Sync>;
     let weak = Weak::from_raw(raw);
     if let Some(func) = weak.upgrade() {
         func();
     }
 }
 
-pub fn get_raw_fn_and_data(host_fn: &HostFn) -> (cudaHostFn_t, *mut c_void) {
+fn get_raw_fn_and_data(host_fn: &HostFn) -> (cudaHostFn_t, *mut c_void) {
     let weak = Arc::downgrade(&host_fn.arc);
     let raw = weak.into_raw();
     let data = raw as *mut c_void;
