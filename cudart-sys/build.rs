@@ -5,6 +5,7 @@ use bindgen::callbacks::{EnumVariantValue, ParseCallbacks};
 
 include!("src/path.rs");
 
+#[cfg(not(target_os = "macos"))]
 pub fn assert_cuda_version() {
     let version = option_env!("CUDA_VERSION").map_or_else(
         || {
@@ -101,9 +102,8 @@ impl ParseCallbacks for CudaParseCallbacks {
     }
 }
 
+#[cfg(not(target_os = "macos"))]
 fn main() {
-    #[cfg(target_os = "macos")]
-    std::process::exit(0);
     assert_cuda_version();
     let cuda_lib_path = cuda_lib_path!();
     let cuda_runtime_api_path = concat!(cuda_include_path!(), "/cuda_runtime_api.h");
@@ -262,4 +262,9 @@ fn main() {
         bindings.to_string(),
     )
     .expect("Couldn't write bindings!");
+}
+
+#[cfg(target_os = "macos")]
+fn main() {
+    std::process::exit(0);
 }
