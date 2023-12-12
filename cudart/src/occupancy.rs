@@ -5,11 +5,11 @@ use cudart_sys::{
     cudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags,
 };
 
-use crate::execution::Kernel;
+use crate::execution::KernelFunction;
 use crate::result::{CudaResult, CudaResultWrap};
 
 pub fn available_dynamic_smem_per_block(
-    kernel: impl Kernel,
+    kernel_function: &impl KernelFunction,
     num_blocks: i32,
     block_size: i32,
 ) -> CudaResult<usize> {
@@ -17,7 +17,7 @@ pub fn available_dynamic_smem_per_block(
     unsafe {
         cudaOccupancyAvailableDynamicSMemPerBlock(
             result.as_mut_ptr(),
-            kernel.get_kernel_raw(),
+            kernel_function.as_ptr(),
             num_blocks,
             block_size,
         )
@@ -26,7 +26,7 @@ pub fn available_dynamic_smem_per_block(
 }
 
 pub fn max_active_blocks_per_multiprocessor(
-    kernel: impl Kernel,
+    kernel_function: &impl KernelFunction,
     block_size: i32,
     dynamic_smem_size: usize,
 ) -> CudaResult<i32> {
@@ -34,7 +34,7 @@ pub fn max_active_blocks_per_multiprocessor(
     unsafe {
         cudaOccupancyMaxActiveBlocksPerMultiprocessor(
             result.as_mut_ptr(),
-            kernel.get_kernel_raw(),
+            kernel_function.as_ptr(),
             block_size,
             dynamic_smem_size,
         )
@@ -43,7 +43,7 @@ pub fn max_active_blocks_per_multiprocessor(
 }
 
 pub fn max_active_blocks_per_multiprocessor_with_flags(
-    kernel: impl Kernel,
+    kernel_function: &impl KernelFunction,
     block_size: i32,
     dynamic_smem_size: usize,
     flags: u32,
@@ -52,7 +52,7 @@ pub fn max_active_blocks_per_multiprocessor_with_flags(
     unsafe {
         cudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags(
             result.as_mut_ptr(),
-            kernel.get_kernel_raw(),
+            kernel_function.as_ptr(),
             block_size,
             dynamic_smem_size,
             flags,
