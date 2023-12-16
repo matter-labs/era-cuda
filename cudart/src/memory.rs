@@ -1,10 +1,10 @@
 // memory management
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__MEMORY.html
 
-use core::ffi::c_void;
 use std::alloc::Layout;
 use std::mem::{self, MaybeUninit};
 use std::ops::{Deref, DerefMut};
+use std::os::raw::c_void;
 
 use bitflags::bitflags;
 

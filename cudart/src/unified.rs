@@ -1,8 +1,8 @@
 // Unified Addressing
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__UNIFIED.html
 
-use core::ffi::c_void;
 use std::mem::MaybeUninit;
+use std::os::raw::c_void;
 
 use cudart_sys::*;
 
