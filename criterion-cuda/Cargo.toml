@@ -5,5 +5,5 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-criterion = "^0"
+criterion = "0.4.0"
 cudart = { path = "../cudart" }

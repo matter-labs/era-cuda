@@ -6,9 +6,8 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 cudart-sys = { path = "../cudart-sys" }
-bitflags = "^2"
-criterion = "^0"
-paste = "^1"
+bitflags = "*"
+paste = "*"
 
 [dev-dependencies]
-serial_test = "^2"
+serial_test = "*"
