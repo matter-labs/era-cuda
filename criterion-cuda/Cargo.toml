@@ -6,4 +6,4 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 criterion = "0.5"
-cudart = { path = "../cudart" }
+cudart = { package = "era_cudart", path = "../cudart" }
