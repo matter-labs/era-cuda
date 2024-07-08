@@ -10,7 +10,7 @@ use std::ffi::CStr;
 use std::fmt::{Debug, Display, Formatter};
 use std::mem::MaybeUninit;
 
-include!("bindings.rs");
+include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 impl CudaError {
     pub fn eprint_error(self) {

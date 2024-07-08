@@ -1,5 +1,5 @@
-use std::fs;
 use std::path::PathBuf;
+use std::{env, fs};
 
 use bindgen::callbacks::{EnumVariantValue, ParseCallbacks};
 
@@ -257,9 +257,7 @@ fn main() {
         .generate()
         .expect("Unable to generate bindings");
 
-    fs::write(
-        PathBuf::from("src").join("bindings.rs"),
-        bindings.to_string(),
-    )
-    .expect("Couldn't write bindings!");
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    fs::write(out_path.join("bindings.rs"), bindings.to_string())
+        .expect("Couldn't write bindings!");
 }
