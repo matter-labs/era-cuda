@@ -1,5 +1,5 @@
 [package]
-name = "era_cudart"
+name = "era_cuda_bindings_generator"
 version = "0.1.0"
 edition = "2021"
 authors = ["The Matter Labs Team <hello@matterlabs.dev>"]
@@ -8,12 +8,8 @@ repository = "https://github.com/matter-labs/era-cuda"
 license = "MIT OR Apache-2.0"
 keywords = ["blockchain", "zksync"]
 categories = ["cryptography"]
-description = "CUDA bindings for ZKsync"
+description = "CUDA Bindings generator"
 
 [dependencies]
+bindgen = "0.69"
 cudart-sys = { package = "era_cudart_sys", version = "=0.1.0", path = "../cudart-sys" }
-bitflags = "2.6"
-paste = "1.0"
-
-[dev-dependencies]
-serial_test = "3.1"

@@ -71,7 +71,7 @@ impl CudaMemPool {
         unsafe {
             cudaMemPoolGetAttribute(
                 self.handle,
-                mem::transmute(attribute.into()),
+                mem::transmute::<i32, CudaMemPoolAttribute>(attribute.into()),
                 value.as_mut_ptr() as *mut c_void,
             )
             .wrap_maybe_uninit(value)
@@ -86,7 +86,7 @@ impl CudaMemPool {
         unsafe {
             cudaMemPoolSetAttribute(
                 self.handle,
-                mem::transmute(attribute.into()),
+                mem::transmute::<i32, CudaMemPoolAttribute>(attribute.into()),
                 &value as *const _ as *mut c_void,
             )
             .wrap()

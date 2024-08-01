@@ -413,7 +413,7 @@ macro_rules! cuda_kernel_signature_arguments_and_function {
 #[macro_export]
 macro_rules! cuda_kernel_declaration {
     ($vis:vis $kernel_name:ident($($arg_ident:ident:$arg_ty:ty),*$(,)?)) => {
-        extern "C" {$vis fn $kernel_name($($arg_ident:$arg_ty,)*); }
+        ::cudart_sys::cuda_fn_and_stub! {$vis fn $kernel_name($($arg_ident:$arg_ty,)*); }
     };
 }
 
