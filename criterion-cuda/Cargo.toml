@@ -8,7 +8,7 @@ repository = "https://github.com/matter-labs/era-cuda"
 license = "MIT OR Apache-2.0"
 keywords = ["blockchain", "zksync"]
 categories = ["cryptography"]
-description = "Criterion benchmarks support for CUDA event-based timings"
+description = "Criterion benchmarks support for CUDA event-based timings for ZKsync"
 
 [dependencies]
 criterion = "0.5"

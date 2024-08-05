@@ -8,7 +8,7 @@ repository = "https://github.com/matter-labs/era-cuda"
 license = "MIT OR Apache-2.0"
 keywords = ["blockchain", "zksync"]
 categories = ["cryptography"]
-description = "CUDA Bindings generator"
+description = "CUDA Bindings generator for ZKsync"
 
 [dependencies]
 bindgen = "0.69"
