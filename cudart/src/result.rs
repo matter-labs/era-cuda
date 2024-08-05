@@ -1,6 +1,6 @@
 use std::mem::MaybeUninit;
 
-use cudart_sys::CudaError;
+use era_cudart_sys::CudaError;
 
 pub type CudaResult<T> = Result<T, CudaError>;
 

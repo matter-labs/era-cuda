@@ -3,7 +3,7 @@
 
 use std::mem::MaybeUninit;
 
-use cudart_sys::*;
+use era_cudart_sys::*;
 
 use crate::result::{CudaResult, CudaResultWrap};
 

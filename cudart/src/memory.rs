@@ -8,7 +8,7 @@ use std::os::raw::c_void;
 
 use bitflags::bitflags;
 
-use cudart_sys::*;
+use era_cudart_sys::*;
 
 use crate::result::{CudaResult, CudaResultWrap};
 use crate::slice::{AllocationData, CudaSlice, CudaSliceMut, DeviceSlice};
@@ -103,10 +103,10 @@ impl<T> CudaSliceMut<T> for DeviceAllocation<T> {
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct CudaHostAllocFlags: u32 {
-        const DEFAULT = cudart_sys::cudaHostAllocDefault;
-        const PORTABLE = cudart_sys::cudaHostAllocPortable;
-        const MAPPED = cudart_sys::cudaHostAllocMapped;
-        const WRITE_COMBINED = cudart_sys::cudaHostAllocWriteCombined;
+        const DEFAULT = era_cudart_sys::cudaHostAllocDefault;
+        const PORTABLE = era_cudart_sys::cudaHostAllocPortable;
+        const MAPPED = era_cudart_sys::cudaHostAllocMapped;
+        const WRITE_COMBINED = era_cudart_sys::cudaHostAllocWriteCombined;
     }
 }
 
@@ -192,11 +192,11 @@ impl<T> AsMut<[T]> for HostAllocation<T> {
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct CudaHostRegisterFlags: u32 {
-        const DEFAULT = cudart_sys::cudaHostRegisterDefault;
-        const PORTABLE = cudart_sys::cudaHostRegisterPortable;
-        const MAPPED = cudart_sys::cudaHostRegisterMapped;
-        const IO_MEMORY = cudart_sys::cudaHostRegisterIoMemory;
-        const READ_ONLY = cudart_sys::cudaHostRegisterReadOnly;
+        const DEFAULT = era_cudart_sys::cudaHostRegisterDefault;
+        const PORTABLE = era_cudart_sys::cudaHostRegisterPortable;
+        const MAPPED = era_cudart_sys::cudaHostRegisterMapped;
+        const IO_MEMORY = era_cudart_sys::cudaHostRegisterIoMemory;
+        const READ_ONLY = era_cudart_sys::cudaHostRegisterReadOnly;
     }
 }
 

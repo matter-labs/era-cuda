@@ -4,7 +4,7 @@
 use std::mem::MaybeUninit;
 use std::os::raw::c_void;
 
-use cudart_sys::*;
+use era_cudart_sys::*;
 
 use crate::result::{CudaResult, CudaResultWrap};
 use crate::slice::CudaSlice;

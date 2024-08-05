@@ -1,6 +1,6 @@
 use bindgen::callbacks::{EnumVariantValue, ParseCallbacks};
 use bindgen::{BindgenError, Bindings};
-use cudart_sys::get_cuda_include_path;
+use era_cudart_sys::get_cuda_include_path;
 
 #[derive(Debug)]
 struct CudaParseCallbacks;

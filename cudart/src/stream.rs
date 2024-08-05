@@ -6,7 +6,7 @@ use std::ptr::null_mut;
 
 use bitflags::bitflags;
 
-use cudart_sys::*;
+use era_cudart_sys::*;
 
 use crate::event::CudaEvent;
 use crate::execution::CudaLaunchAttribute;
@@ -21,8 +21,8 @@ pub struct CudaStream {
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct CudaStreamCreateFlags: u32 {
-        const DEFAULT = cudart_sys::cudaStreamDefault;
-        const NON_BLOCKING = cudart_sys::cudaStreamNonBlocking;
+        const DEFAULT = era_cudart_sys::cudaStreamDefault;
+        const NON_BLOCKING = era_cudart_sys::cudaStreamNonBlocking;
     }
 }
 
@@ -35,8 +35,8 @@ impl Default for CudaStreamCreateFlags {
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct CudaStreamWaitEventFlags: u32 {
-        const DEFAULT = cudart_sys::cudaEventWaitDefault;
-        const WAIT_EXTERNAL = cudart_sys::cudaEventWaitExternal;
+        const DEFAULT = era_cudart_sys::cudaEventWaitDefault;
+        const WAIT_EXTERNAL = era_cudart_sys::cudaEventWaitExternal;
     }
 }
 

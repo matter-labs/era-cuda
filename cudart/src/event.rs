@@ -6,7 +6,7 @@ use std::ptr::NonNull;
 
 use bitflags::bitflags;
 
-use cudart_sys::*;
+use era_cudart_sys::*;
 
 use crate::result::{CudaResult, CudaResultWrap};
 use crate::stream::CudaStream;
@@ -20,10 +20,10 @@ pub struct CudaEvent {
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct CudaEventCreateFlags: u32 {
-        const DEFAULT = cudart_sys::cudaEventDefault;
-        const BLOCKING_SYNC = cudart_sys::cudaEventBlockingSync;
-        const DISABLE_TIMING = cudart_sys::cudaEventDisableTiming;
-        const INTERPROCESS = cudart_sys::cudaEventInterprocess;
+        const DEFAULT = era_cudart_sys::cudaEventDefault;
+        const BLOCKING_SYNC = era_cudart_sys::cudaEventBlockingSync;
+        const DISABLE_TIMING = era_cudart_sys::cudaEventDisableTiming;
+        const INTERPROCESS = era_cudart_sys::cudaEventInterprocess;
     }
 }
 
@@ -36,8 +36,8 @@ impl Default for CudaEventCreateFlags {
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct CudaEventRecordFlags: u32 {
-        const DEFAULT = cudart_sys::cudaEventRecordDefault;
-        const EXTERNAL = cudart_sys::cudaEventRecordExternal;
+        const DEFAULT = era_cudart_sys::cudaEventRecordDefault;
+        const EXTERNAL = era_cudart_sys::cudaEventRecordExternal;
     }
 }
 

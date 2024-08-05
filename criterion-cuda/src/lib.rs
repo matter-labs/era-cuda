@@ -1,8 +1,8 @@
 use criterion::measurement::{Measurement, ValueFormatter};
 use criterion::Throughput;
 
-use cudart::event::{elapsed_time, CudaEvent};
-use cudart::stream::CudaStream;
+use era_cudart::event::{elapsed_time, CudaEvent};
+use era_cudart::stream::CudaStream;
 
 // Allows criterion benchmarks to use CUDA event-based timings.
 // Based on src/lib.rs from https://github.com/theHamsta/criterion-cuda.
