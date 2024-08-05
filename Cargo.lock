@@ -223,7 +223,7 @@ checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 
 [[package]]
 name = "era_criterion_cuda"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "criterion",
  "era_cudart",
@@ -231,7 +231,7 @@ dependencies = [
 
 [[package]]
 name = "era_cuda_bindings_generator"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bindgen",
  "era_cudart_sys",
@@ -239,7 +239,7 @@ dependencies = [
 
 [[package]]
 name = "era_cudart"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bitflags",
  "era_cudart_sys",
@@ -249,7 +249,7 @@ dependencies = [
 
 [[package]]
 name = "era_cudart_sys"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde_json",
 ]
