@@ -10,7 +10,7 @@ fn main() {
     }
     #[cfg(not(no_cuda))]
     {
-        let cuda_version = get_cuda_version().expect("Failed to determine CUDA version");
+        let cuda_version = get_cuda_version().expect("Failed to determine the CUDA version.");
         if !cuda_version.starts_with("12.") {
             println!("cargo::warning=CUDA version {cuda_version} detected. This crate is only tested with CUDA 12.*.");
         }
