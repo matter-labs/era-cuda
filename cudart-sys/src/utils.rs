@@ -59,7 +59,7 @@ macro_rules! no_cuda_message {
     () => {
         concat!(
             env!("CARGO_PKG_NAME"),
-            " was compiled without CUDA, CUDA functions were replaced by stubs."
+            " was compiled without CUDA Toolkit, CUDA functions were replaced by stubs."
         )
     };
 }

@@ -10,9 +10,10 @@ fn main() {
     }
     #[cfg(not(no_cuda))]
     {
-        let cuda_version = get_cuda_version().expect("Failed to determine the CUDA version.");
+        let cuda_version =
+            get_cuda_version().expect("Failed to determine the CUDA Toolkit version.");
         if !cuda_version.starts_with("12.") {
-            println!("cargo::warning=CUDA version {cuda_version} detected. This crate is only tested with CUDA 12.*.");
+            println!("cargo::warning=CUDA Toolkit version {cuda_version} detected. This crate is only tested with CUDA Toolkit version 12.*.");
         }
         let cuda_lib_path = get_cuda_lib_path().unwrap();
         let cuda_lib_path_str = cuda_lib_path.to_str().unwrap();
