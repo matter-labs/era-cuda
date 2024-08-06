@@ -1,6 +1,6 @@
 [package]
 name = "era_cuda_bindings_generator"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["The Matter Labs Team <hello@matterlabs.dev>"]
 homepage = "https://zksync.io/"
@@ -12,4 +12,4 @@ description = "CUDA Bindings generator for ZKsync"
 
 [dependencies]
 bindgen = "0.69"
-era_cudart_sys = { version = "=0.2.0", path = "../cudart-sys" }
+era_cudart_sys = { version = "=0.2.1", path = "../cudart-sys" }
