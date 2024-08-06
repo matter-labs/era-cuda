@@ -6,7 +6,7 @@ use std::os::raw::{c_char, c_int, c_uint, c_void};
 use std::ptr::null_mut;
 use std::sync::{Arc, Weak};
 
-use cudart_sys::*;
+use era_cudart_sys::*;
 
 use crate::result::{CudaResult, CudaResultWrap};
 use crate::stream::CudaStream;
@@ -413,7 +413,7 @@ macro_rules! cuda_kernel_signature_arguments_and_function {
 #[macro_export]
 macro_rules! cuda_kernel_declaration {
     ($vis:vis $kernel_name:ident($($arg_ident:ident:$arg_ty:ty),*$(,)?)) => {
-        extern "C" {$vis fn $kernel_name($($arg_ident:$arg_ty,)*); }
+        ::era_cudart_sys::cuda_fn_and_stub! {$vis fn $kernel_name($($arg_ident:$arg_ty,)*); }
     };
 }
 
@@ -432,7 +432,7 @@ macro_rules! cuda_kernel {
         $crate::cuda_kernel_signature_arguments_and_function!($name,$($arg_ident:$arg_ty),*);
         macro_rules! $macro_name {
             ($kernel_name:ident) => {
-                ::cudart::cuda_kernel_declaration!($kernel_name($($arg_ident:$arg_ty),*));
+                ::era_cudart::cuda_kernel_declaration!($kernel_name($($arg_ident:$arg_ty),*));
             };
         }
     };

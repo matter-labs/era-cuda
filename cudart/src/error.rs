@@ -1,7 +1,7 @@
 // error handling
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__ERROR.html
 
-use cudart_sys::*;
+use era_cudart_sys::*;
 
 pub fn get_last_error() -> CudaError {
     unsafe { cudaGetLastError() }

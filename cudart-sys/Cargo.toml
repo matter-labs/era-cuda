@@ -1,6 +1,6 @@
 [package]
 name = "era_cudart_sys"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["The Matter Labs Team <hello@matterlabs.dev>"]
 homepage = "https://zksync.io/"
@@ -10,6 +10,8 @@ keywords = ["blockchain", "zksync"]
 categories = ["cryptography"]
 description = "Raw CUDA bindings for ZKsync"
 
+[dependencies]
+serde_json = "1.0"
+
 [build-dependencies]
-bindgen = "0.69"
 serde_json = "1.0"

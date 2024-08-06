@@ -1,6 +1,6 @@
 [package]
 name = "era_cudart"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["The Matter Labs Team <hello@matterlabs.dev>"]
 homepage = "https://zksync.io/"
@@ -11,8 +11,8 @@ categories = ["cryptography"]
 description = "CUDA bindings for ZKsync"
 
 [dependencies]
-cudart-sys = { package = "era_cudart_sys", version = "=0.1.0", path = "../cudart-sys" }
-bitflags = "2.5"
+era_cudart_sys = { version = "=0.2.0", path = "../cudart-sys" }
+bitflags = "2.6"
 paste = "1.0"
 
 [dev-dependencies]
